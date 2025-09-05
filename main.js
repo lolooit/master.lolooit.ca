@@ -69,10 +69,7 @@ document.getElementById('startBtn').onclick = async () => {
     });
 
     signalingClient.on('open', async () => {
-      log('Signaling OPEN. Creating offer...');
-      const offer = await pc.createOffer({ offerToReceiveAudio: false, offerToReceiveVideo: false });
-      await pc.setLocalDescription(offer);
-      signalingClient.sendSdpOffer(pc.localDescription);
+      log('Signaling OPEN. Waiting for viewer to connect...');
     });
 
     signalingClient.on('sdpOffer', async (offer) => {
@@ -83,6 +80,17 @@ document.getElementById('startBtn').onclick = async () => {
       signalingClient.sendSdpAnswer(pc.localDescription);
       log('SDP answer sent to viewer');
     });
+    
+    // Send offer when viewer connects
+    setTimeout(async () => {
+      if (signalingClient.readyState === 'OPEN') {
+        log('Creating and sending offer to viewer...');
+        const offer = await pc.createOffer({ offerToReceiveAudio: false, offerToReceiveVideo: false });
+        await pc.setLocalDescription(offer);
+        signalingClient.sendSdpOffer(pc.localDescription);
+        log('Offer sent to viewer');
+      }
+    }, 2000);
     
     signalingClient.on('iceCandidate', cand => { 
       log('Remote ICE candidate from viewer'); 
