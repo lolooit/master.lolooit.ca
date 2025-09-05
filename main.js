@@ -75,10 +75,30 @@ document.getElementById('startBtn').onclick = async () => {
       signalingClient.sendSdpOffer(pc.localDescription);
     });
 
-    signalingClient.on('sdpAnswer', async answer => { log('Got SDP answer'); await pc.setRemoteDescription(answer); });
-    signalingClient.on('iceCandidate', cand => { log('Remote ICE'); pc.addIceCandidate(cand); });
+    signalingClient.on('sdpOffer', async (offer) => {
+      log('Got SDP offer from viewer');
+      await pc.setRemoteDescription(offer);
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      signalingClient.sendSdpAnswer(pc.localDescription);
+      log('SDP answer sent to viewer');
+    });
+    
+    signalingClient.on('iceCandidate', cand => { 
+      log('Remote ICE candidate from viewer'); 
+      pc.addIceCandidate(cand); 
+    });
+    
+    signalingClient.on('error', (error) => {
+      log('Signaling error:', error.message);
+    });
 
-    pc.onicecandidate = ({ candidate }) => { if (candidate) signalingClient.sendIceCandidate(candidate); };
+    pc.onicecandidate = ({ candidate }) => { 
+      if (candidate) {
+        log('Sending ICE candidate to viewer');
+        signalingClient.sendIceCandidate(candidate);
+      }
+    };
     pc.onconnectionstatechange = () => log('PC state:', pc.connectionState);
 
     signalingClient.open();
