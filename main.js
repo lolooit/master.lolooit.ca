@@ -68,25 +68,20 @@ document.getElementById('startBtn').onclick = async () => {
       systemClockOffset: kv.config.systemClockOffset
     });
 
-    signalingClient.on('open', async () => {
-      log('Signaling OPEN. Creating and sending offer...');
-      try {
-        const offer = await pc.createOffer({ offerToReceiveAudio: false, offerToReceiveVideo: false });
-        await pc.setLocalDescription(offer);
-        signalingClient.sendSdpOffer(pc.localDescription);
-        log('Offer sent to viewer');
-      } catch (err) {
-        log('Error creating offer:', err.message);
-      }
+    signalingClient.on('open', () => {
+      log('Signaling OPEN. Waiting for offer from viewer...');
     });
 
-    signalingClient.on('sdpAnswer', async (answer) => {
-      log('Got SDP answer from viewer');
+    signalingClient.on('sdpOffer', async (offer) => {
+      log('Got SDP offer from viewer');
       try {
-        await pc.setRemoteDescription(answer);
-        log('Remote description set - connection established');
+        await pc.setRemoteDescription(offer);
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        signalingClient.sendSdpAnswer(pc.localDescription);
+        log('SDP answer sent to viewer');
       } catch (err) {
-        log('Error setting remote description:', err.message);
+        log('Error handling offer:', err.message);
       }
     });
     
