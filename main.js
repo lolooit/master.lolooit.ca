@@ -17,10 +17,10 @@ document.getElementById('startBtn').onclick = async () => {
 
 
 
-    // استفاده از Environment Variables
+    // استفاده از Config
     AWS.config.credentials = new AWS.Credentials({
-      accessKeyId: process.env.ACCESS_KEY,
-      secretAccessKey: process.env.SECRET_KEY
+      accessKeyId: cfg.ACCESS_KEY,
+      secretAccessKey: cfg.SECRET_KEY
     });
     log('AWS credentials ready.');
 
