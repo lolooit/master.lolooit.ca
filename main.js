@@ -69,28 +69,26 @@ document.getElementById('startBtn').onclick = async () => {
     });
 
     signalingClient.on('open', async () => {
-      log('Signaling OPEN. Waiting for viewer to connect...');
-    });
-
-    signalingClient.on('sdpOffer', async (offer) => {
-      log('Got SDP offer from viewer');
-      await pc.setRemoteDescription(offer);
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      signalingClient.sendSdpAnswer(pc.localDescription);
-      log('SDP answer sent to viewer');
-    });
-    
-    // Send offer when viewer connects
-    setTimeout(async () => {
-      if (signalingClient.readyState === 'OPEN') {
-        log('Creating and sending offer to viewer...');
+      log('Signaling OPEN. Creating and sending offer...');
+      try {
         const offer = await pc.createOffer({ offerToReceiveAudio: false, offerToReceiveVideo: false });
         await pc.setLocalDescription(offer);
         signalingClient.sendSdpOffer(pc.localDescription);
         log('Offer sent to viewer');
+      } catch (err) {
+        log('Error creating offer:', err.message);
       }
-    }, 2000);
+    });
+
+    signalingClient.on('sdpAnswer', async (answer) => {
+      log('Got SDP answer from viewer');
+      try {
+        await pc.setRemoteDescription(answer);
+        log('Remote description set - connection established');
+      } catch (err) {
+        log('Error setting remote description:', err.message);
+      }
+    });
     
     signalingClient.on('iceCandidate', cand => { 
       log('Remote ICE candidate from viewer'); 
