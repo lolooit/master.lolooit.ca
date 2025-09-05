@@ -99,7 +99,14 @@ document.getElementById('startBtn').onclick = async () => {
         signalingClient.sendIceCandidate(candidate);
       }
     };
-    pc.onconnectionstatechange = () => log('PC state:', pc.connectionState);
+    pc.onconnectionstatechange = () => {
+      log('PC state:', pc.connectionState);
+      if (pc.connectionState === 'connected') {
+        log('✅ WebRTC connection established!');
+      } else if (pc.connectionState === 'failed') {
+        log('❌ WebRTC connection failed');
+      }
+    };
 
     signalingClient.open();
     log('MASTER started.');
