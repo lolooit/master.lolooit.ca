@@ -13,6 +13,10 @@ document.getElementById('startBtn').onclick = async () => {
     log('Init AWS...');
     AWS.config.region = REGION;
     
+
+
+
+
     // استفاده از Environment Variables
     AWS.config.credentials = new AWS.Credentials({
       accessKeyId: process.env.ACCESS_KEY,
@@ -21,6 +25,7 @@ document.getElementById('startBtn').onclick = async () => {
     log('AWS credentials ready.');
 
     const kv = new AWS.KinesisVideo({ region: REGION, credentials: AWS.config.credentials });
+//swdwsdw//
 
     log('DescribeSignalingChannel...');
     log('Trying to access channel:', CHANNEL);
