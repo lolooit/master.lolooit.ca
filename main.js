@@ -13,15 +13,18 @@ document.getElementById('startBtn').onclick = async () => {
     log('Init AWS...');
     AWS.config.region = REGION;
     
-    // استفاده از AWS credentials - در console وارد کنید:
-    // window.AWS_ACCESS_KEY = 'your-access-key'
-    // window.AWS_SECRET_KEY = 'your-secret-key'
-    
-    // استفاده از Environment Variables از Amplify
-    AWS.config.credentials = new AWS.Credentials({
-      accessKeyId: 'YOUR_ACCESS_KEY_HERE',
-      secretAccessKey: 'YOUR_SECRET_KEY_HERE'
-    });
+    // استفاده از Amplify Environment Variables
+    if (window.awsExports) {
+      AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+        IdentityPoolId: window.awsExports.aws_cognito_identity_pool_id
+      });
+    } else {
+      // Fallback to manual credentials
+      AWS.config.credentials = new AWS.Credentials({
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || 'YOUR_ACCESS_KEY',
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || 'YOUR_SECRET_KEY'
+      });
+    }
     log('AWS credentials ready.');
 
     const kv = new AWS.KinesisVideo({ region: REGION, credentials: AWS.config.credentials });
@@ -72,32 +75,39 @@ document.getElementById('startBtn').onclick = async () => {
       log('Signaling OPEN. Waiting for offer from viewer...');
     });
 
-    signalingClient.on('sdpOffer', async (offer) => {
-      log('Got SDP offer from viewer');
+    signalingClient.on('sdpOffer', async (offer, remoteClientId) => {
+      viewerClientId = remoteClientId;
+      log('Got SDP offer from viewer:', remoteClientId);
       try {
         await pc.setRemoteDescription(offer);
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
-        signalingClient.sendSdpAnswer(pc.localDescription);
+        signalingClient.sendSdpAnswer(pc.localDescription, remoteClientId);
         log('SDP answer sent to viewer');
       } catch (err) {
         log('Error handling offer:', err.message);
       }
     });
     
-    signalingClient.on('iceCandidate', cand => { 
+    signalingClient.on('iceCandidate', async (candidate, remoteClientId) => { 
       log('Remote ICE candidate from viewer'); 
-      pc.addIceCandidate(cand); 
+      try {
+        await pc.addIceCandidate(candidate);
+      } catch (err) {
+        log('Error adding ICE candidate:', err.message);
+      }
     });
     
     signalingClient.on('error', (error) => {
       log('Signaling error:', error.message);
     });
 
+    let viewerClientId = null;
+    
     pc.onicecandidate = ({ candidate }) => { 
-      if (candidate) {
+      if (candidate && viewerClientId) {
         log('Sending ICE candidate to viewer');
-        signalingClient.sendIceCandidate(candidate);
+        signalingClient.sendIceCandidate(candidate, viewerClientId);
       }
     };
     pc.onconnectionstatechange = () => {
